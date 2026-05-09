@@ -1,0 +1,50 @@
+# LLM Wiki vault template allowlist
+# Track template/schema files only by default.
+*
+
+# Keep public template files.
+!.gitignore
+!README.md
+!AGENTS.template.md
+!LICENSE
+
+# Keep folder structure markers.
+!1. Rough Notes/
+!1. Rough Notes/.gitkeep
+!2. Source material/
+!2. Source material/.gitkeep
+!2. Source material/Articles/
+!2. Source material/Articles/.gitkeep
+!2. Source material/Books/
+!2. Source material/Books/.gitkeep
+!2. Source material/Papers/
+!2. Source material/Papers/.gitkeep
+!2. Source material/Videos/
+!2. Source material/Videos/.gitkeep
+!2. Source material/Source Documentation/
+!2. Source material/Source Documentation/.gitkeep
+!3. Tags/
+!3. Tags/.gitkeep
+!4. Indexes/
+!4. Indexes/.gitkeep
+!5. Templates/
+!5. Templates/**
+!6. Zettelkasten/
+!6. Zettelkasten/.gitkeep
+!6. Zettelkasten/Concepts/
+!6. Zettelkasten/Concepts/.gitkeep
+!6. Zettelkasten/Entities/
+!6. Zettelkasten/Entities/.gitkeep
+!6. Zettelkasten/Comparisons/
+!6. Zettelkasten/Comparisons/.gitkeep
+!7. Journal/
+!7. Journal/.gitkeep
+!8. Presentations/
+!8. Presentations/.gitkeep
+
+# Keep application state, generated files, and working content untracked.
+.obsidian/
+.trash/
+Excalidraw/
+Clippings/
+.agents/
