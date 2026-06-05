@@ -47,9 +47,9 @@ The pattern is designed for agent-assisted knowledge work: the human supplies di
 
 Create these when starting a new vault:
 
-- `AGENTS.md` — copy from `AGENTS.template.md` and customize for your vault.
-- canonical index — catalog of sources, pages, comparisons, atomic notes, and MOCs.
-- operations log — append-only chronological record of ingests, queries, lint passes, notes, and schema changes.
+- `AGENTS.md` -- copy from `AGENTS.template.md` and customize for your vault.
+- canonical index -- catalog of sources, pages, comparisons, atomic notes, and MOCs.
+- operations log -- append-only chronological record of ingests, queries, lint passes, notes, and schema changes.
 
 The index and log are core parts of the LLM Wiki architecture. This template tracks the folder structure and page templates; each working vault maintains its own index/log contents.
 
@@ -76,11 +76,123 @@ Templates are provided for:
 - concepts
 - entities
 - comparisons
+- entity candidates
+- relations
+- relation candidates
+- contradiction events
+- ingest log entries
 - MOCs/dashboards/analytics/flashcards
 - journal entries
 - presentations
 
 Use the templates as starting points, then adapt the schema to your domain.
+
+## Incremental KG Governance
+
+Incremental ingest is not just extraction. It is reconciliation. Every new source can introduce duplicate entities, superseded relations, and contradictions with existing pages. The vault treats these as reviewable graph events rather than silently merging them.
+
+This template keeps raw source notes authoritative and adds a public-safe architecture for incremental knowledge graph construction:
+
+- every extraction is tied to a source document, source section or chunk, timestamp, and extraction version
+- entities use stable IDs, not name-only matching
+- aliases are tracked explicitly
+- similarity proposes candidate matches, but similarity is not identity
+- candidate entities and candidate relations are reviewable artifacts before they become resolved knowledge
+- relations are versioned over time instead of overwritten
+- contradictions are stored as reviewable events
+- every entity, relation, and contradiction traces back to source evidence
+
+The vault is not a graph database first. It is a citation-governed knowledge system that can project into graph form. Graph tooling can be layered on later, but the durable value is the source-backed provenance and review lifecycle.
+
+### Schema concepts
+
+| Concept | Purpose | Key fields |
+|---|---|---|
+| `SourceDocument` | Immutable source note plus integration metadata | reference, notes, key takeaways, wiki updates, cited by, ingested timestamp, extraction version |
+| `Entity` | Resolved stable entity page | stable entity ID, canonical name, aliases, type, source references, status, created_from, updated_at |
+| `EntityCandidate` | Reviewable proposed entity | candidate ID, proposed canonical name, aliases, type, source document, source section or chunk, extracted_at, extraction_version, candidate_matches, confidence, status |
+| `Relation` | Resolved source-backed edge | stable relation ID, subject_id, predicate, object_id, source document, evidence reference or excerpt hash, confidence, valid_from, valid_to, superseded_by, status |
+| `RelationCandidate` | Reviewable proposed edge | candidate ID, proposed subject, predicate, proposed object, source document, evidence reference or excerpt hash, candidate_matches, contradiction_candidates, confidence, status |
+| `ContradictionEvent` | Reviewable conflict between active knowledge and a new candidate | event ID, old relation ID, new relation candidate ID, source documents, reason, source authority comparison, status, resolution note, resolved_by, resolved_at |
+| `IngestLogEntry` | Audit record for one ingest run | source document, ingest timestamp, extraction version, entities proposed, relations proposed, contradictions found, pages updated, review items created |
+
+### Source authority
+
+Conflict resolution is not just confidence. Suggested authority hierarchy:
+
+```text
+official primary source
+> peer-reviewed paper or specification
+> maintainer-authored documentation
+> first-party technical article
+> secondary summary
+> model-generated extraction
+```
+
+A newer source does not automatically win. A higher-confidence extraction does not automatically win. The vault resolves contradictions only when authority, evidence specificity, scope, and review state are clear. Human review is required when authority is unclear or impact is high.
+
+### Entity resolution
+
+Stable entity IDs are required. Names are not enough. Aliases should be tracked, and merges should preserve provenance from every contributing source.
+
+Suggested flow:
+
+```text
+new source
+-> extract entity candidates
+-> compare by exact name, alias, type, source context, and embedding similarity
+-> create candidate_matches
+-> if high certainty and low risk, propose merge
+-> if uncertain, keep as review_required
+-> if accepted, merge into stable entity ID with provenance preserved
+```
+
+Embedding similarity can suggest matches, but it should not silently merge ambiguous entities.
+
+### Relation versioning
+
+Do not overwrite old relations. Expire or supersede them. Keep the original source chain intact. Use `valid_from`, `valid_to`, and `superseded_by`; use contradiction events when conflict is unresolved.
+
+```yaml
+relation:
+  id: rel_langgraph_supports_agent_workflows_2026_06_05
+  subject_id: entity_langgraph
+  predicate: supports
+  object_id: concept_agent_workflows
+  source: "[[Source Document]]"
+  evidence_excerpt_hash: "..."
+  confidence: 0.82
+  valid_from: "2026-06-05"
+  valid_to: null
+  superseded_by: null
+  status: active
+```
+
+When superseded:
+
+```yaml
+valid_to: "2026-08-12"
+superseded_by: rel_langgraph_supports_agent_workflows_2026_08_12
+status: superseded
+```
+
+### Contradiction lifecycle
+
+```text
+candidate relation
+-> potential duplicate
+-> potential contradiction
+-> contradiction event
+-> contested relation
+-> resolved relation or rejected candidate
+```
+
+Candidate relation: newly extracted from a source, not yet accepted.
+
+Contested relation: conflicts with an active relation and neither source clearly wins.
+
+Resolved relation: accepted after source authority, evidence specificity, scope, recency, and review state are sufficient.
+
 
 ## Recommended Obsidian plugins
 
@@ -145,8 +257,9 @@ Karpathy's original gist is intentionally abstract. The surrounding discussion a
 |---|---|---|
 | Compounding hallucinations | If generated prose becomes a source of truth, errors can be reused and amplified. | Raw sources are immutable, factual claims cite source notes, secondhand provenance is surfaced, and lint checks citation drift. |
 | Loss of traceability | A wiki summary can hide details from the original document. | Source notes stay available; citations point back to ingested sources; source backlinks make provenance auditable. |
-| Stale or contradictory claims | New sources can invalidate older synthesis. | Ingest and lint workflows require contradiction handling rather than silent overwrite. |
-| Flat wikilinks lack semantics | A plain `[[link]]` does not distinguish support, contradiction, supersession, or relatedness. | The template keeps standard Obsidian links for portability, but the schema encourages explicit prose, frontmatter, and lint checks for contradiction/supersession. Teams needing typed edges can add typed-link plugins or graph backends. |
+| Stale or contradictory claims | New sources can invalidate older synthesis. | Ingest and lint workflows require contradiction events and relation supersession rather than silent overwrite. |
+| Incremental KG drift | New sources can create duplicate entities, stale edges, or fragmented subgraphs. | The template treats ingest as reconciliation: entity candidates, relation candidates, source authority checks, relation versioning, and reviewable contradiction events. |
+| Flat wikilinks lack semantics | A plain `[[link]]` does not distinguish support, contradiction, supersession, or relatedness. | The template keeps standard Obsidian links for portability, but adds reviewable relation templates and lint checks for contradiction/supersession. Teams needing typed edges can add typed-link plugins or graph backends. |
 | Scaling beyond the index file | A single catalog works at small scale but can fray as the vault grows. | The index remains the first navigation layer; qmd adds BM25/vector/hybrid retrieval; folder contexts help agents search source, index, and wiki layers separately. |
 | RAG vs LLM Wiki | RAG is better for frequently changing corpora and exact source lookup; LLM Wiki is better for curated synthesis that should compound. | The template is not anti-RAG: qmd search complements the wiki, and source-first citation rules keep raw documents authoritative. |
 | Team or production trust | Automated wiki writing can become risky without review gates. | Batch ingest, destructive changes, contradictions, schema changes, and lint fixes require proposal-before-mutation workflows. |
@@ -164,11 +277,11 @@ This template chooses a conservative baseline: plain markdown, portable Obsidian
 
 This vault template pairs well with [`pi-persistent-intelligence`](https://github.com/Mont3ll/pi-persistent-intelligence), which adapts the Persistent Intelligence memory-as-policy model into a pi extension:
 
-- the vault stores research-grade, citation-backed knowledge
-- PI memory stores operational preferences, workflows, and development playbooks
-- recurring stable patterns can be promoted from PI memory into vault concepts or MOCs
+- the vault stores research-grade, citation-backed knowledge: source documents, entities, concepts, claims, citations, relations, contradiction events, index entries, and ingest logs
+- PI memory stores operational preferences, workflows, development playbooks, reinforcement events, inquiries, tombstones, operational graph reports, and timeline reports
+- recurring stable patterns can be proposed from PI memory as vault-promotion candidates
 
-The contrast is useful: an LLM Wiki governs source-backed research synthesis, while Persistent Intelligence governs an agent's operational beliefs with evidence, confidence, review cadence, decay, and supersession.
+The contrast is useful: an LLM Wiki governs source-backed research synthesis and knowledge graph evolution, while Persistent Intelligence governs an agent's operational beliefs with evidence, confidence, review cadence, decay, and supersession. PI can emit structured vault-promotion artifacts, but the vault decides whether those candidates become citation-backed concepts, entities, claims, or relations. There is no automatic PI-to-vault mutation.
 
 ## Further reading
 
