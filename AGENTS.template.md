@@ -379,6 +379,18 @@ Vault research knowledge graph:
 
 Purpose: govern source-backed research knowledge. PI can propose vault-promotion candidates, but the vault applies its own citation and provenance governance before accepting them. No automatic PI-to-vault mutation is allowed.
 
+### Lightweight KG tools
+
+Optional local scripts support this governance model:
+
+```bash
+bun run kg:lint
+bun run kg:candidates -- "2. Source material/Articles/Example Source.md"
+bun run kg:graph -- --write
+```
+
+These scripts are review-first helpers. They can report findings, scaffold review-required candidate notes, and project a read-only graph report. They must not merge ambiguous entities, resolve contradictions, overwrite relations, or update wiki pages automatically.
+
 ## Citation discipline
 
 The wiki should remain traceable to sources.
@@ -501,19 +513,21 @@ Check:
 - missing cross-references
 - index drift
 - data gaps and promotion candidates
+- duplicate entity IDs
+- duplicate canonical names
 - duplicate entity candidates
 - unresolved high-similarity entity candidates
+- entity alias collision
+- relation missing ID, subject, predicate, object, source, or `valid_from`
 - relation candidates contradicting active relations
 - active relation with superseded source
-- relation missing source citation
-- relation missing `valid_from`
-- superseded relation missing `valid_to`
+- superseded relation missing `valid_to` or `superseded_by`
 - contradiction event without resolution status
-- entity alias collision
+- resolved contradiction event missing `resolved_by` or `resolved_at`
 - stale relation referencing an older source when a newer relevant source exists
 - unresolved contradiction older than the configured review window
 
-Output a checklist report. Lint should not silently mutate the vault. Propose structural fixes before applying them.
+Output a checklist report. Lint should not silently mutate the vault. Propose structural fixes before applying them. The optional `bun run kg:lint` script provides a lightweight local scan for many of these checks.
 
 ### Flashcards
 

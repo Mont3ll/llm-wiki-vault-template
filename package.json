@@ -1,0 +1,11 @@
+{
+  "name": "llm-wiki-vault-template",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "kg:lint": "bun scripts/kg-lint.ts",
+    "kg:candidates": "bun scripts/kg-ingest-candidates.ts",
+    "kg:graph": "bun scripts/kg-graph-report.ts",
+    "test": "bun test scripts"
+  }
+}

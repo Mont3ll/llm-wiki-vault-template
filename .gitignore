@@ -7,6 +7,11 @@
 !README.md
 !AGENTS.template.md
 !LICENSE
+!package.json
+
+# Keep lightweight public tooling.
+!scripts/
+!scripts/**
 
 # Keep folder structure markers.
 !1. Rough Notes/

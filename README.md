@@ -193,6 +193,35 @@ Contested relation: conflicts with an active relation and neither source clearly
 
 Resolved relation: accepted after source authority, evidence specificity, scope, recency, and review state are sufficient.
 
+## Lightweight KG governance tooling
+
+The template includes small Bun scripts for review-first KG governance. They are local helpers, not graph database infrastructure, and they do not merge entities, resolve contradictions, overwrite relations, or update wiki pages automatically.
+
+Run lint:
+
+```bash
+bun run kg:lint
+bun run kg:lint -- --write-report
+```
+
+`kg:lint` scans markdown/frontmatter for missing IDs, duplicate entity IDs, alias collisions, relation versioning gaps, contradiction-event status gaps, source-note structure issues, and unresolved review artifacts. By default it prints a console report only. `--write-report` writes `4. Indexes/kg-lint-report.md`.
+
+Generate review-only ingest candidates:
+
+```bash
+bun run kg:candidates -- "2. Source material/Articles/Example Source.md"
+```
+
+The candidate helper scaffolds review-required `EntityCandidate`, `RelationCandidate`, and `IngestLogEntry` notes from a source note. It does not call an LLM, accept entities, accept relations, merge candidates, or update wiki pages.
+
+Generate a read-only graph projection:
+
+```bash
+bun run kg:graph
+bun run kg:graph -- --write
+```
+
+`kg:graph` projects source, entity, relation, candidate, contradiction, and concept notes into a JSON graph shape. With `--write`, it writes `4. Indexes/kg-graph.json` and `4. Indexes/kg-graph-report.md`. The graph is a report over source-backed notes, not a canonical graph database.
 
 ## Recommended Obsidian plugins
 
